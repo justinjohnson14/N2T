@@ -3,6 +3,9 @@ import sys
 #parse file
 #output 16 bit numbers in a row
 
+position = 0
+varPosition = 16
+
 comp = {
     #a==0
     "0":   "0"+"101010",
@@ -39,6 +42,7 @@ dest = {
     "M":   "001",
     "D":   "010",
     "DM":  "011",
+    "MD":  "011",
     "A":   "100",
     "AM":  "101",
     "AD":  "110",
@@ -82,23 +86,75 @@ sym = {
     "THAT":"4",
 }
 
+lblSym = {
+
+}
+
+varSym = {
+}
+
 
 def parse(input):
+    input = input.replace('\n', '')
+    input=input.replace(" ", "")
     if input[0] == "@":
-        return bin(int(input.split("@")[1]))[2:].zfill(16)
+        try:
+            n = bin(int(input.split("@")[1]))[2:].zfill(16)
+            return n
+        except ValueError:
+            #Check if input.split("@")[1] is exists as a symbol and what type it is, or how to handle if not
+            var = input.split("@")[1]
+            if var in sym.keys():
+                return bin(int(sym[var]))[2:].zfill(16)
+            elif var in lblSym.keys():
+                return bin(int(lblSym[var]))[2:].zfill(16)
+            elif var in varSym.keys():
+                return bin(int(varSym[var]))[2:].zfill(16)
+            else:
+                global varPosition
+                varSym[var] = varPosition
+                varPosition += 1
+                return bin(int(varPosition))[2:].zfill(16)
+    elif input[0:2] == "//" or input=="\n":
+        return ""
+    elif input[0] == "(":
+        return ""
     else:
-        return""
+        d="null"
+        j="null"
+        if input.find("=")!=-1:
+            d = input.split("=")[0]
+            c = input.split("=")[1]
+        if input.find(";")!=-1:
+            c=input.split(";")[0]
+            j = input.split(";")[1]
+        return "111" + comp[c] + dest[d] + jmp[j]
+    
+def addLbl(input):
+    global position
+    val = input.split("(")[1].split(")")[0]
+    lblSym[val] = position
 
 def main():
     file=sys.argv[1]
     ofName = file.split(".")[0]
     output = open(ofName + ".hack", "w")
+    global position
 
     with open(file) as f:
+        for line2 in f:
+            line2 = line2.replace('\n', '')
+            line2=line2.replace(" ", "")
+            if line2 != '\n' and line2 != None:
+                if line2.find("(")!=-1:
+                    addLbl(line2)
+    print(lblSym)
+    with open(file) as f:
         for line in f:
-            l = parse(line)
+            if line != '\n' and line != None: l = parse(line)
             if l != "":
-                print(l)
+                output.write(l + '\n')
+                position+=1
             
             
     
