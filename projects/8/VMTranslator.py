@@ -6,7 +6,7 @@ alCommands = ["add", "sub", "neg", "eq", "gt", "lt", "and", "or", "not"]
 bCommands = ["label", "goto", "if-goto"]
 fCommands = ["function", "call", "return"]
 
-global position, arthJumpFlag
+global position, arthJumpFlag, newLabel
 
 
 def stack(line):
@@ -140,7 +140,7 @@ def logiTemplate(t):
 def b(line):
     match line.split(" ")[0]:
         case "label":
-            return "("+line.split(" ")[1]+")\n"
+            return "("+line[6:]+")\n"
         case "goto":
             return (
                 "@" + line.split(" ")[1] + "\n" +
@@ -149,21 +149,158 @@ def b(line):
         case "if-goto":
             return (
                 "@SP\n"+
+                "AM=M-1\n"+
                 "D=M\n" +
+                "A=A-1\n"+
                 "@" + line.split(" ")[1] + "\n" +
                 "D;JNE\n"
             )
 
 
+        return (
+            "@LCL\n"+
+            "D=M\n"+
+            "@R14\n"+
+            "M=D\n"+
+            "@5\n"+
+            "A=D-A\n"+
+            "D=M\n"+
+            "@R15\n"+
+            "M=D\n"+
+            "@SP\n"+
+            "D=M\n"+
+            "@ARG\n"+
+            "M=D\n"+
+            "@SP\n"+
+            "M=D+1\n"+
+            "@R14\n"+
+            "D=M-1\n"+
+            "@THAT\n"+
+            "M=D\n"+
+            "D=D-1\n"+
+            "@THIS\n"+
+            "M=D\n"+
+            "D=D-1\n"+
+            "@ARG\n"+
+            "M=D\n"+
+            "D=D-1\n"+
+            "@LCL\n"+
+            "M=D\n"+
+            "D=D-1\n"+
+            "@R15\n"+
+            "0;JMP\n"
+        )
 
 
 
-
-#def f(line):
-    #if line.split(" ")[0] == "push":
-        #print("push")
-    #else:
-        #print("pop")
+def f(line):
+    global programLine
+    global newLabel
+    if line == "return":
+        return (
+            "@LCL\n"+
+            "D=M\n"+
+            "@R14\n"+
+            "M=D\n"+
+            "@5\n"+
+            "A=D-A\n"+
+            "D=M\n"+
+            "@R15\n"+
+            "M=D\n"+
+            "@SP\n"+
+            "D=M\n"+
+            "@ARG\n"+
+            "M=D\n"+
+            "@SP\n"+
+            "M=D+1\n"+
+            
+            
+            
+            
+            
+            
+            "@R14\n"+
+            "D=M-1\n"+
+            "@THAT\n"+
+            "M=D\n"+
+            "D=D-1\n"+
+            "@THIS\n"+
+            "M=D\n"+
+            "D=D-1\n"+
+            "@ARG\n"+
+            "M=D\n"+
+            "D=D-1\n"+
+            "@LCL\n"+
+            "M=D\n"+
+            "D=D-1\n"+
+            "@R15\n"+
+            "0;JMP\n"
+        )
+    elif line.split(" ")[0] == "function":
+        result = "(" + line.split(" ")[1] + ")\n"
+        for i in range(int(line.split(" ")[2])):
+            result = result + "@SP\nM=M+1\n"
+        return result
+    elif line.split(" ")[0] == "call":
+        label = line.split(" ")[1] + str(newLabel)
+        nArgs = line.split(" ")[2]
+        return(
+            "@" + label + "\n" +
+            "D=M\n"+
+            "@SP\n"+
+            "A=M\n"+
+            "M=D\n"+
+            "D=A+1\n"+
+            "@SP\n"+
+            "M=D\n"+
+            "@1\n"+
+            "D=M\n"+
+            "@SP\n"+
+            "A=M\n"+
+            "M=D\n"+
+            "D=A+1\n"+
+            "@SP\n"+
+            "M=D\n"+
+            "@2\n"+
+            "D=M\n"+
+            "@SP\n"+
+            "A=M\n"+
+            "M=D\n"+
+            "D=A+1\n"+
+            "@SP\n"+
+            "M=D\n"+
+            "@3\n"+
+            "D=M\n"+
+            "@SP\n"+
+            "A=M\n"+
+            "M=D\n"+
+            "D=A+1\n"+
+            "@SP\n"+
+            "M=D\n"+
+            "@4\n"+
+            "D=M\n"+
+            "@SP\n"+
+            "A=M\n"+
+            "M=D\n"+
+            "D=A+1\n"+
+            "@SP\n"+
+            "M=D\n"+
+            "@5\n"+
+            "D=D-A\n"+
+            "@" + nArgs + "\n"+
+            "D=D-A\n"+
+            "@ARG\n"+
+            "M=D\n"+
+            "@SP\n"+
+            "D=A\n"+
+            "@LCL\n"+
+            "M=D\n"+
+            "@" + line.split(" ")[1] + "\n"+
+            "0;JMP\n"+
+            "(" + label + ")\n"
+        )
+    else:
+        return ""
 
 
 
@@ -174,14 +311,19 @@ def b(line):
 
 def parse(command: str):
     global position
+    try: 
+        command2 = command.split(" ")[0] 
+    except: 
+        command2 = command
     command = command.lstrip()
-    if command.split(" ")[0] in stackCommands:
+    command2 = command2.lstrip()
+    if command2 in stackCommands:
         return stack(command)
-    elif command in alCommands:
-        return al(command)
-    elif command.split(" ")[0] in bCommands:
+    elif command2 in alCommands:
+        return al(command2)
+    elif command2 in bCommands:
         return b(command)
-    elif command.split(" ")[0] in fCommands:
+    elif command2 in fCommands:
         return f(command)
     elif command[0:2] == "//":
         return ""
@@ -194,10 +336,11 @@ def main():
     file=sys.argv[1]
     ofName = file.split(".")[0]
     output = open(ofName + ".asm", "w")
-    global position, arthJumpFlag, programLine
+    global position, arthJumpFlag, programLine, newLabel
     arthJumpFlag = 0
     position = 0
     programLine = 0
+    newLabel = 0
 
     with open(file) as f:
         for line in f:
