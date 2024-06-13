@@ -5,7 +5,7 @@ import java.util.HashMap;
 /**
  * Created by xuchen on 11/3/14.
  */
-public class Trans {
+public class VMTranslator {
 
     /**
      * Return all the .vm files in a directory
