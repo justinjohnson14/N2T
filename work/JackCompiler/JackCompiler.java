@@ -2,6 +2,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.Scanner;
+import java.util.regex.Matcher;
 
 
 enum TokenType{
@@ -105,13 +106,13 @@ public class JackCompiler {
                 JackTokenizer tokenizer = new JackTokenizer(f);
                 String outString = "";
                 FileWriter output;
-                System.out.println(fileOutPath + "/" + f.getName().substring(0, f.getName().lastIndexOf(".")) + ".xml");
+                //System.out.println(fileOutPath + "/" + f.getName().substring(0, f.getName().lastIndexOf(".")) + ".xml");
 
                 try {
                     output = new FileWriter(fileOutPath + "/" + f.getName().substring(0, f.getName().lastIndexOf(".")) + ".xml");
                     while (tokenizer.hasMoreTokens()) {
                         tokenizer.advance();
-                        
+                        /*
                         switch (tokenizer.tokenType()) {
                             case KEYWORD:
                                 outString = "<keyword> " + tokenizer.keyword() +" </keyword>";
@@ -124,9 +125,10 @@ public class JackCompiler {
                             case STRING_CONST:
                                 outString = "<stringConstant> " + tokenizer.stringVal() +" </stringConstant>";
                             default:
-                                break;
+                                outString = "";
                         }
                         output.write(outString);
+                         */
                     }
                     output.close();
                 } catch(Exception e){
@@ -155,7 +157,7 @@ class JackTokenizer {
 
     public JackTokenizer(File file){
         try{
-            this.scan = new Scanner(file);
+            scan = new Scanner(file);
         } catch(Exception e){
             System.err.println(e.getMessage());
         }
@@ -166,17 +168,31 @@ class JackTokenizer {
     }
 
     public void advance(){
+        token = "";
         token = scan.next().strip();
-        if(token.equals("//")){
-            token = scan.nextLine();
-        } else if (token.equals("*/")){
-            mlComment = false;
-            return;
-        }else if(token.equals("/**") || token.strip().equals("/*") || mlComment) {
+
+        if(!comment(token)){
+            System.out.println(token);
+        }
+    }
+
+    private boolean comment(String str){
+        if(str.equals("//")){
+            str = scan.nextLine();
+            return true;
+        }
+
+        if (str.equals("/*") || str.equals("/**")){
             mlComment = true;
-            return;
-        }  else {
-            System.out.println(token.strip());
+        } else if (str.equals("*/")) {
+            mlComment = false;
+            return true;
+        }
+
+        if(mlComment){
+            return true;
+        } else {
+            return false;
         }
     }
 
